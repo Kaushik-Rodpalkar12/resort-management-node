@@ -9,4 +9,4 @@ router.get("/register", (req, res) => {
   res.render("register");
 });
 
-module.exports = router;   // 🔴 THIS LINE IS REQUIRED
+module.exports = router;
