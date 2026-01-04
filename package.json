@@ -4,5 +4,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
   }
 }
