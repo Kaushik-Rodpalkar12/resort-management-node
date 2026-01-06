@@ -1,4 +1,14 @@
-<h2>All Resorts</h2>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin – View Resorts</title>
+</head>
+<body>
+
+<h2>Welcome, <%= username %></h2>
+
+<a href="/admin/resorts/add">➕ Add Resort</a>
+<br><br>
 
 <table border="1">
   <tr>
@@ -8,21 +18,22 @@
     <th>Action</th>
   </tr>
 
-  <% resorts.forEach(r => { %>
+  <% resorts.forEach(resort => { %>
     <tr>
-      <td><%= r.name %></td>
-      <td>₹<%= r.price %></td>
+      <td><%= resort.name %></td>
+      <td>₹<%= resort.price %></td>
       <td>
-        <% if (r.image_url) { %>
-          <img src="<%= r.image_url %>" width="100">
-        <% } %>
+        <img src="<%= resort.image_url %>" width="120">
       </td>
       <td>
-        <a href="/admin/resorts/delete/<%= r.id %>">Delete</a>
+        <a href="/admin/resorts/delete/<%= resort.id %>">❌ Delete</a>
       </td>
     </tr>
   <% }) %>
 </table>
 
 <br>
-<a href="/admin/dashboard">Back</a>
+<a href="/admin/dashboard">⬅ Back</a>
+
+</body>
+</html>

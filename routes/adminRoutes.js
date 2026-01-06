@@ -53,6 +53,28 @@ router.post("/resorts/add", isAdmin, async (req, res) => {
 
   res.redirect("/admin/dashboard");
 });
+// VIEW ALL RESORTS (ADMIN)
+router.get("/resorts", async (req, res) => {
+  if (!req.session.userId || req.session.role !== "admin") {
+    return res.redirect("/login");
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM resorts ORDER BY id DESC"
+    );
+
+    res.render("adminResorts", {
+      username: req.session.username,
+      resorts: result.rows
+    });
+
+  } catch (err) {
+    console.error("ADMIN VIEW RESORTS ERROR:", err);
+    res.send("Error loading resorts");
+  }
+});
+
 
 /* =========================
    DELETE RESORT
