@@ -1,0 +1,28 @@
+<h2>All Resorts</h2>
+
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Price</th>
+    <th>Image</th>
+    <th>Action</th>
+  </tr>
+
+  <% resorts.forEach(r => { %>
+    <tr>
+      <td><%= r.name %></td>
+      <td>₹<%= r.price %></td>
+      <td>
+        <% if (r.image_url) { %>
+          <img src="<%= r.image_url %>" width="100">
+        <% } %>
+      </td>
+      <td>
+        <a href="/admin/resorts/delete/<%= r.id %>">Delete</a>
+      </td>
+    </tr>
+  <% }) %>
+</table>
+
+<br>
+<a href="/admin/dashboard">Back</a>

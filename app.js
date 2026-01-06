@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
 const { Pool } = require("pg");
-
+const adminRoutes = require("./routes/adminRoutes");
 dotenv.config();
 const app = express();
 
@@ -34,7 +34,7 @@ app.use(
     cookie: { secure: false }
   })
 );
-
+app.use("/", adminRoutes);
 /* =========================
    VIEW ENGINE
 ========================= */
@@ -137,6 +137,10 @@ app.get("/admin/dashboard", (req, res) => {
     return res.redirect("/login");
   }
   res.render("adminDashboard", { username: req.session.username });
+});
+app.get("/resorts", async (req, res) => {
+  const result = await db.query("SELECT * FROM resorts ORDER BY id DESC");
+  res.render("userResorts", { resorts: result.rows });
 });
 
 /* =========================
