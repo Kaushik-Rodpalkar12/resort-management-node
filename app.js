@@ -14,16 +14,12 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// ✅ SESSION (MUST BE BEFORE ROUTES)
 app.use(
   session({
-    secret: "resort-secret-key",
+    secret: "resort_secret_key",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      secure: false, // MUST be false on Render
-      maxAge: 1000 * 60 * 60 // 1 hour
-    }
+    cookie: { secure: false }
   })
 );
 
@@ -39,16 +35,25 @@ app.set("views", path.join(__dirname, "views"));
 const db = require("./config/db");
 
 // =========================
-// ROUTES
+// ROOT ROUTE
 // =========================
+app.get("/", (req, res) => {
+  res.redirect("/login");
+});
 
-// ---------- REGISTER ----------
+// =========================
+// REGISTER
+// =========================
 app.get("/register", (req, res) => {
   res.render("register");
 });
 
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.send("All fields required");
+  }
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -61,11 +66,13 @@ app.post("/register", async (req, res) => {
     res.redirect("/login");
   } catch (err) {
     console.error(err);
-    res.send("Registration failed ❌");
+    res.send("User already exists or error occurred");
   }
 });
 
-// ---------- LOGIN ----------
+// =========================
+// LOGIN
+// =========================
 app.get("/login", (req, res) => {
   res.render("login");
 });
@@ -80,48 +87,58 @@ app.post("/login", async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.send("User not found ❌");
+      return res.send("Invalid username or password");
     }
 
     const user = rows[0];
-    const isMatch = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) {
-      return res.send("Wrong password ❌");
+    if (!match) {
+      return res.send("Invalid username or password");
     }
 
-    // ✅ STORE SESSION
-    req.session.user = {
-      id: user.id,
-      username: user.username
-    };
-
-    console.log("LOGIN SUCCESS:", req.session.user);
+    req.session.userId = user.id;
+    req.session.username = user.username;
 
     res.redirect("/dashboard");
-
   } catch (err) {
     console.error(err);
-    res.send("Login failed ❌");
+    res.send("Login failed");
   }
 });
 
-// ---------- DASHBOARD ----------
+// =========================
+// DASHBOARD (PROTECTED)
+// =========================
 app.get("/dashboard", (req, res) => {
-  if (!req.session.user) {
+  if (!req.session.userId) {
     return res.redirect("/login");
   }
 
   res.render("dashboard", {
-    username: req.session.user.username
+    username: req.session.username
   });
 });
 
-// ---------- LOGOUT ----------
+// =========================
+// LOGOUT
+// =========================
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
     res.redirect("/login");
   });
+});
+
+// =========================
+// DB TEST
+// =========================
+app.get("/db-test", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT 1 AS result");
+    res.json({ status: "SUCCESS", rows });
+  } catch (err) {
+    res.json({ status: "FAILED", error: err.message });
+  }
 });
 
 // =========================
