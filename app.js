@@ -9,6 +9,16 @@ dotenv.config();
 const app = express();
 
 // =========================
+// ADMIN MIDDLEWARE
+// =========================
+function isAdmin(req, res, next) {
+  if (!req.session.userId || req.session.role !== "admin") {
+    return res.redirect("/login");
+  }
+  next();
+}
+
+// =========================
 // MIDDLEWARES
 // =========================
 app.use(express.urlencoded({ extended: true }));
@@ -59,7 +69,7 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.query(
-      "INSERT INTO users (username, password) VALUES (?, ?)",
+      "INSERT INTO users (username, password, role) VALUES (?, ?, 'user')",
       [username, hashedPassword]
     );
 
@@ -97,8 +107,15 @@ app.post("/login", async (req, res) => {
       return res.send("Invalid username or password");
     }
 
+    // ✅ SAVE ROLE IN SESSION (CRITICAL FIX)
     req.session.userId = user.id;
     req.session.username = user.username;
+    req.session.role = user.role;
+
+    // ✅ ADMIN REDIRECT
+    if (user.role === "admin") {
+      return res.redirect("/admin/dashboard");
+    }
 
     res.redirect("/dashboard");
   } catch (err) {
@@ -108,7 +125,7 @@ app.post("/login", async (req, res) => {
 });
 
 // =========================
-// DASHBOARD (PROTECTED)
+// USER DASHBOARD
 // =========================
 app.get("/dashboard", (req, res) => {
   if (!req.session.userId) {
@@ -116,6 +133,15 @@ app.get("/dashboard", (req, res) => {
   }
 
   res.render("dashboard", {
+    username: req.session.username
+  });
+});
+
+// =========================
+// ADMIN DASHBOARD
+// =========================
+app.get("/admin/dashboard", isAdmin, (req, res) => {
+  res.render("admin_dashboard", {
     username: req.session.username
   });
 });
