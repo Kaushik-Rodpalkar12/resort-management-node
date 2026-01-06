@@ -29,12 +29,12 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 // =========================
-// DATABASE
+// DATABASE (POSTGRES)
 // =========================
 const db = require("./config/db");
 
 // =========================
-// ROOT ROUTE (FIXED)
+// ROOT ROUTE
 // =========================
 app.get("/", (req, res) => {
   res.redirect("/login");
@@ -56,7 +56,7 @@ app.post("/register", async (req, res) => {
 
   try {
     await db.query(
-      "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+      "INSERT INTO users (username, password, role) VALUES ($1, $2, $3)",
       [username, password, "user"]
     );
 
@@ -78,18 +78,18 @@ app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const [rows] = await db.query(
-      "SELECT * FROM users WHERE username = ?",
+    const result = await db.query(
+      "SELECT * FROM users WHERE username = $1",
       [username]
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.send("Invalid username or password");
     }
 
-    const user = rows[0];
+    const user = result.rows[0];
 
-    // ✅ SIMPLE PASSWORD CHECK (NO BCRYPT)
+    // ✅ SIMPLE PASSWORD CHECK
     if (password !== user.password) {
       return res.send("Invalid username or password");
     }
@@ -98,7 +98,7 @@ app.post("/login", async (req, res) => {
     req.session.username = user.username;
     req.session.role = user.role;
 
-    // ✅ ROLE BASED REDIRECT
+    // ROLE BASED REDIRECT
     if (user.role === "admin") {
       res.redirect("/admin/dashboard");
     } else {
@@ -151,8 +151,8 @@ app.get("/logout", (req, res) => {
 // =========================
 app.get("/db-test", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT 1 AS result");
-    res.json({ status: "SUCCESS", rows });
+    await db.query("SELECT 1");
+    res.json({ status: "SUCCESS" });
   } catch (err) {
     res.json({ status: "FAILED", error: err.message });
   }
