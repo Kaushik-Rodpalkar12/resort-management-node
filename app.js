@@ -26,49 +26,77 @@ const db = require("./config/db");
 // =========================
 // ROUTES
 // =========================
-const authRoutes = require("./routes/authRoutes");
 
-// ⚠️ VERY IMPORTANT: use routes like this
-app.use("/", authRoutes);
+// HOME
+app.get("/", (req, res) => {
+  res.send("Resort Management System Backend is Live ✅");
+});
 
-// =========================
-// HEALTH CHECK
-// =========================
-app.get("/health", (req, res) => {
-  res.send("Server is healthy 🚀");
+// LOGIN PAGE
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+
+// REGISTER PAGE
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+
+// REGISTER POST
+app.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.send("Username and Password required ❌");
+  }
+
+  try {
+    const sql = "INSERT INTO users (username, password) VALUES (?, ?)";
+    await db.query(sql, [username, password]);
+
+    res.send("User registered successfully ✅");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Registration failed ❌");
+  }
+});
+
+// LOGIN POST (OPTIONAL BASIC)
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE username = ? AND password = ?",
+      [username, password]
+    );
+
+    if (rows.length > 0) {
+      res.send("Login successful ✅");
+    } else {
+      res.send("Invalid credentials ❌");
+    }
+  } catch (err) {
+    res.status(500).send("Login error ❌");
+  }
 });
 
 // =========================
-// DATABASE TEST ROUTE
+// DB TEST
 // =========================
 app.get("/db-test", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT 1 AS result");
-    res.json({
-      status: "SUCCESS",
-      result: rows
-    });
+    res.json({ status: "SUCCESS", rows });
   } catch (err) {
-    res.status(500).json({
-      status: "FAILED",
-      error: err.message
-    });
+    res.status(500).json({ status: "FAILED", error: err.message });
   }
-});
-
-
-// =========================
-// HOME ROUTE (OPTIONAL)
-// =========================
-app.get("/", (req, res) => {
-  res.send("Resort Management System Backend is Live ✅");
 });
 
 // =========================
 // SERVER
 // =========================
 const PORT = process.env.PORT || 10000;
-
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
