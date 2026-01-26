@@ -24,7 +24,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // secure cookies in production
+      secure: process.env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 2 // 2 hours
     }
   })
@@ -48,7 +48,7 @@ app.use(require("./routes/authRoutes"));
 app.use(require("./routes/userRoutes"));
 app.use(require("./routes/adminRoutes"));
 
-/* ROOT – Redirect based on role */
+/* ROOT – Redirect based on role or show homepage */
 app.get("/", async (req, res) => {
   try {
     if (req.session.role === "admin") {
@@ -65,7 +65,11 @@ app.get("/", async (req, res) => {
     });
   } catch (err) {
     console.error("Error loading homepage:", err);
-    res.status(500).send("Error loading homepage");
+    res.render("home", {
+      resorts: [],
+      username: null,
+      error_msg: "Unable to load resorts. Please try again later."
+    });
   }
 });
 
@@ -75,7 +79,7 @@ app.get("/logout", (req, res) => {
 });
 
 /* SERVER */
-const PORT = process.env.PORT || 3000; // ✅ Render provides PORT dynamically
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () =>
   console.log("✅ Server running on port", PORT)
 );
