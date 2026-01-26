@@ -22,7 +22,11 @@ app.use(
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production", // secure cookies in production
+      maxAge: 1000 * 60 * 60 * 2 // 2 hours
+    }
   })
 );
 
@@ -47,24 +51,20 @@ app.use(require("./routes/adminRoutes"));
 /* ROOT – Redirect based on role */
 app.get("/", async (req, res) => {
   try {
-    // If logged in as admin → go to admin dashboard
     if (req.session.role === "admin") {
       return res.redirect("/admin/dashboard");
     }
-
-    // If logged in as user → go to user dashboard
     if (req.session.role === "user") {
       return res.redirect("/dashboard");
     }
 
-    // Otherwise show public homepage
     const result = await pool.query("SELECT * FROM resorts ORDER BY id");
     res.render("home", {
       resorts: result.rows,
       username: null
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error loading homepage:", err);
     res.status(500).send("Error loading homepage");
   }
 });
@@ -75,5 +75,7 @@ app.get("/logout", (req, res) => {
 });
 
 /* SERVER */
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("✅ Server running on port", PORT));
+const PORT = process.env.PORT || 3000; // ✅ Render provides PORT dynamically
+app.listen(PORT, "0.0.0.0", () =>
+  console.log("✅ Server running on port", PORT)
+);
