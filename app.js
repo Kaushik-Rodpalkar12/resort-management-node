@@ -54,10 +54,10 @@ app.get("/", async (req, res) => {
     if (req.session.role === "admin") return res.redirect("/admin/dashboard");
     if (req.session.role === "user") return res.redirect("/dashboard");
 
-    // Add timeout fallback for slow DB
+    // Query resorts with safe timeout fallback
     const resultPromise = pool.query("SELECT * FROM resorts ORDER BY id");
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("DB timeout")), 3000)
+      setTimeout(() => reject(new Error("DB timeout")), 10000) // ⏱️ 10s timeout
     );
 
     const result = await Promise.race([resultPromise, timeoutPromise]);
@@ -67,7 +67,7 @@ app.get("/", async (req, res) => {
       username: null
     });
   } catch (err) {
-    console.error("Error loading homepage:", err);
+    console.error("Error loading homepage:", err.message);
     res.render("home", {
       resorts: [],
       username: null,
@@ -86,7 +86,8 @@ app.get("/health", async (req, res) => {
   try {
     await pool.query("SELECT 1");
     res.send("✅ DB connected");
-  } catch {
+  } catch (err) {
+    console.error("Healthcheck failed:", err.message);
     res.status(500).send("❌ DB connection failed");
   }
 });
