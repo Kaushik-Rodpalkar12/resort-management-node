@@ -14,12 +14,18 @@ const pool = require("./config/db");
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Session store with fallback if DB is unreachable
+let store;
+try {
+  store = new pgSession({ pool, tableName: "session" });
+} catch (err) {
+  console.error("Session store init failed, using memory:", err.message);
+  store = undefined; // fallback to memory
+}
+
 app.use(
   session({
-    store: new pgSession({
-      pool,
-      tableName: "session"
-    }),
+    store,
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
@@ -54,25 +60,23 @@ app.get("/", async (req, res) => {
     if (req.session.role === "admin") return res.redirect("/admin/dashboard");
     if (req.session.role === "user") return res.redirect("/dashboard");
 
-    // Query resorts with safe timeout fallback
-    const resultPromise = pool.query("SELECT * FROM resorts ORDER BY id");
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("DB timeout")), 10000) // ⏱️ 10s timeout
-    );
-
-    const result = await Promise.race([resultPromise, timeoutPromise]);
+    let resorts = [];
+    try {
+      // Query resorts with extended timeout handling
+      const result = await pool.query("SELECT * FROM resorts ORDER BY id");
+      resorts = result.rows;
+    } catch (dbErr) {
+      console.error("Homepage DB query failed:", dbErr.message);
+    }
 
     res.render("home", {
-      resorts: result.rows || [],
-      username: null
+      resorts,
+      username: null,
+      error_msg: resorts.length === 0 ? "Resorts unavailable right now." : null
     });
   } catch (err) {
     console.error("Error loading homepage:", err.message);
-    res.render("home", {
-      resorts: [],
-      username: null,
-      error_msg: "Unable to load resorts. Please try again later."
-    });
+    res.status(500).send("Error loading homepage");
   }
 });
 

@@ -2,13 +2,14 @@ const { Pool } = require("pg");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // ✅ required for Supabase
-  },
-  // Optional: keep connections short-lived for pooler stability
-  max: 5,              // limit concurrent connections
-  idleTimeoutMillis: 30000, // close idle clients after 30s
-  connectionTimeoutMillis: 10000 // fail fast if DB is unreachable
+  ssl: { rejectUnauthorized: false },
+  max: 5,                     // keep pool small for Supabase free tier
+  idleTimeoutMillis: 30000,   // close idle clients after 30s
+  connectionTimeoutMillis: 15000 // allow up to 15s to connect
+});
+
+pool.on("error", (err) => {
+  console.error("Unexpected DB error:", err.message);
 });
 
 module.exports = pool;
