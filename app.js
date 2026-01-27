@@ -51,16 +51,19 @@ app.use(require("./routes/adminRoutes"));
 /* ROOT – Redirect based on role or show homepage */
 app.get("/", async (req, res) => {
   try {
-    if (req.session.role === "admin") {
-      return res.redirect("/admin/dashboard");
-    }
-    if (req.session.role === "user") {
-      return res.redirect("/dashboard");
-    }
+    if (req.session.role === "admin") return res.redirect("/admin/dashboard");
+    if (req.session.role === "user") return res.redirect("/dashboard");
 
-    const result = await pool.query("SELECT * FROM resorts ORDER BY id");
+    // Add timeout fallback for slow DB
+    const resultPromise = pool.query("SELECT * FROM resorts ORDER BY id");
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("DB timeout")), 3000)
+    );
+
+    const result = await Promise.race([resultPromise, timeoutPromise]);
+
     res.render("home", {
-      resorts: result.rows,
+      resorts: result.rows || [],
       username: null
     });
   } catch (err) {
@@ -76,6 +79,16 @@ app.get("/", async (req, res) => {
 /* LOGOUT */
 app.get("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/login"));
+});
+
+/* HEALTHCHECK */
+app.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.send("✅ DB connected");
+  } catch {
+    res.status(500).send("❌ DB connection failed");
+  }
 });
 
 /* SERVER */
