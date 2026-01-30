@@ -1,27 +1,25 @@
-const express = require("express");
-const router = express.Router();
-const pool = require("../config/db");
+const bcrypt = require("bcrypt");
 
-/* LOGIN */
-router.get("/login", (req, res) => {
-  res.render("login", {
-    error_msg: req.flash("error_msg"),
-    success_msg: req.flash("success_msg")
-  });
-});
-
+// LOGIN
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   try {
     const result = await pool.query("SELECT * FROM users WHERE username=$1", [username]);
 
-    if (result.rows.length === 0 || password !== result.rows[0].password) {
+    if (result.rows.length === 0) {
       req.flash("error_msg", "Invalid credentials");
       return res.redirect("/login");
     }
 
     const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password);
+
+    if (!match) {
+      req.flash("error_msg", "Invalid credentials");
+      return res.redirect("/login");
+    }
+
     req.session.userId = user.id;
     req.session.role = user.role;
     req.session.username = user.username;
@@ -37,14 +35,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-/* REGISTER */
-router.get("/register", (req, res) => {
-  res.render("register", {
-    error_msg: req.flash("error_msg"),
-    success_msg: req.flash("success_msg")
-  });
-});
-
+// REGISTER
 router.post("/register", async (req, res) => {
   const { username, password } = req.body;
 
@@ -56,9 +47,11 @@ router.post("/register", async (req, res) => {
       return res.redirect("/register");
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     await pool.query(
       "INSERT INTO users (username, password, role) VALUES ($1, $2, 'user')",
-      [username, password]
+      [username, hashedPassword]
     );
 
     req.flash("success_msg", "Registration successful! Please login.");
@@ -69,5 +62,3 @@ router.post("/register", async (req, res) => {
     res.redirect("/register");
   }
 });
-
-module.exports = router;
