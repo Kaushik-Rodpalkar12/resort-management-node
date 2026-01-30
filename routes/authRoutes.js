@@ -39,6 +39,12 @@ router.post("/login", async (req, res) => {
       req.session.role = user.role;
       req.session.username = user.username;
 
+      console.log("Session set:", {
+        userId: req.session.userId,
+        role: req.session.role,
+        username: req.session.username
+      });
+
       req.flash("success_msg", "Login successful!");
       return user.role === "admin"
         ? res.redirect("/admin/dashboard")

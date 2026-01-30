@@ -28,7 +28,8 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: false,   // 🔑 force cookies to work on Render free tier
+      sameSite: "lax", // 🔑 prevents cross-site cookie issues
       maxAge: 1000 * 60 * 60 * 2
     }
   })
