@@ -1,3 +1,12 @@
+process.removeAllListeners("warning"); // clears existing warnings
+process.on("warning", (warning) => {
+  if (warning.name === "DeprecationWarning") {
+    // Ignore specific deprecation warnings
+    return;
+  }
+  console.warn(warning.name, warning.message);
+});
+
 const express = require("express");
 const path = require("path");
 const dotenv = require("dotenv");
