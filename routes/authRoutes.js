@@ -23,21 +23,29 @@ router.post("/login", async (req, res) => {
 
     const user = result.rows[0];
 
-    // Plain text password check
     if (password !== user.password) {
       req.flash("error_msg", "Invalid credentials");
       return res.redirect("/login");
     }
 
-    // Save session info
-    req.session.userId = user.id;
-    req.session.role = user.role;
-    req.session.username = user.username;
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error("Session regeneration failed:", err.message);
+        req.flash("error_msg", "Session error");
+        return res.redirect("/login");
+      }
 
-    req.flash("success_msg", "Login successful!");
-    user.role === "admin"
-      ? res.redirect("/admin/dashboard")
-      : res.redirect("/dashboard");
+      req.session.userId = user.id;
+      req.session.role = user.role;
+      req.session.username = user.username;
+
+      req.flash("success_msg", "Login successful!");
+      if (user.role === "admin") {
+        return res.redirect("/admin/dashboard");
+      } else {
+        return res.redirect("/dashboard");
+      }
+    });
   } catch (err) {
     console.error("Login error:", err.message);
     req.flash("error_msg", "Server error");
@@ -64,7 +72,6 @@ router.post("/register", async (req, res) => {
       return res.redirect("/register");
     }
 
-    // Save plain text password
     await pool.query(
       "INSERT INTO users (username, password, role) VALUES ($1, $2, 'user')",
       [username, password]

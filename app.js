@@ -1,9 +1,6 @@
-process.removeAllListeners("warning"); // clears existing warnings
+process.removeAllListeners("warning");
 process.on("warning", (warning) => {
-  if (warning.name === "DeprecationWarning") {
-    // Ignore specific deprecation warnings
-    return;
-  }
+  if (warning.name === "DeprecationWarning") return;
   console.warn(warning.name, warning.message);
 });
 
@@ -22,7 +19,6 @@ const pool = require("./config/db");
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Session store with fallback if DB is slow/unreachable
 let store;
 try {
   store = new pgSession({ pool, tableName: "session" });
@@ -41,12 +37,11 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 2 // 2 hours
+      maxAge: 1000 * 60 * 60 * 2
     }
   })
 );
 
-// Flash messages
 app.use(flash());
 app.use((req, res, next) => {
   res.locals.success_msg = req.flash("success_msg")[0] || null;
@@ -64,13 +59,9 @@ app.use(require("./routes/authRoutes"));
 app.use(require("./routes/userRoutes"));
 app.use(require("./routes/adminRoutes"));
 
-/* ROOT – Redirect based on role or show homepage */
+/* ROOT – Always show home page */
 app.get("/", async (req, res) => {
   try {
-    const role = req.session.role;
-    if (role === "admin") return res.redirect("/admin/dashboard");
-    if (role === "user") return res.redirect("/dashboard");
-
     let resorts = [];
     try {
       const result = await pool.query("SELECT * FROM resorts ORDER BY id");
@@ -81,7 +72,7 @@ app.get("/", async (req, res) => {
 
     res.render("home", {
       resorts,
-      username: null,
+      username: req.session.username || null,
       error_msg: resorts.length === 0 ? "Resorts unavailable right now." : null
     });
   } catch (err) {
@@ -90,7 +81,7 @@ app.get("/", async (req, res) => {
   }
 });
 
-/* BOOKINGS PAGE – resilient query */
+/* BOOKINGS */
 app.get("/bookings", async (req, res) => {
   try {
     let bookings = [];
@@ -113,7 +104,7 @@ app.get("/bookings", async (req, res) => {
 
 /* LOGOUT */
 app.get("/logout", (req, res) => {
-  req.session.destroy(() => res.redirect("/login"));
+  req.session.destroy(() => res.redirect("/"));
 });
 
 /* HEALTHCHECK */
