@@ -40,11 +40,9 @@ router.post("/login", async (req, res) => {
       req.session.username = user.username;
 
       req.flash("success_msg", "Login successful!");
-      if (user.role === "admin") {
-        return res.redirect("/admin/dashboard");
-      } else {
-        return res.redirect("/dashboard");
-      }
+      return user.role === "admin"
+        ? res.redirect("/admin/dashboard")
+        : res.redirect("/dashboard");
     });
   } catch (err) {
     console.error("Login error:", err.message);

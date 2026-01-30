@@ -1,9 +1,3 @@
-process.removeAllListeners("warning");
-process.on("warning", (warning) => {
-  if (warning.name === "DeprecationWarning") return;
-  console.warn(warning.name, warning.message);
-});
-
 const express = require("express");
 const path = require("path");
 const dotenv = require("dotenv");
@@ -27,12 +21,10 @@ try {
   store = undefined;
 }
 
-const sessionSecret = process.env.SESSION_SECRET || "fallbackSecret@123";
-
 app.use(
   session({
     store,
-    secret: sessionSecret,
+    secret: process.env.SESSION_SECRET || "fallbackSecret@123",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -59,7 +51,7 @@ app.use(require("./routes/authRoutes"));
 app.use(require("./routes/userRoutes"));
 app.use(require("./routes/adminRoutes"));
 
-/* ROOT – Always show home page */
+/* HOME PAGE */
 app.get("/", async (req, res) => {
   try {
     let resorts = [];
@@ -105,6 +97,15 @@ app.get("/bookings", async (req, res) => {
 /* LOGOUT */
 app.get("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/"));
+});
+
+/* SESSION DEBUG (optional) */
+app.get("/session-info", (req, res) => {
+  res.json({
+    userId: req.session.userId,
+    role: req.session.role,
+    username: req.session.username
+  });
 });
 
 /* HEALTHCHECK */
