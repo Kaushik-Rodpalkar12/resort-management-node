@@ -7,7 +7,6 @@ const flash = require("connect-flash");
 
 dotenv.config();
 const app = express();
-
 const pool = require("./config/db");
 
 /* MIDDLEWARE */
@@ -23,10 +22,12 @@ try {
   store = undefined;
 }
 
+const sessionSecret = process.env.SESSION_SECRET || "fallbackSecret@123";
+
 app.use(
   session({
     store,
-    secret: process.env.SESSION_SECRET,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -57,16 +58,13 @@ app.use(require("./routes/adminRoutes"));
 /* ROOT – Redirect based on role or show homepage */
 app.get("/", async (req, res) => {
   try {
-    if (req.session.role === "admin") return res.redirect("/admin/dashboard");
-    if (req.session.role === "user") return res.redirect("/dashboard");
+    const role = req.session.role;
+    if (role === "admin") return res.redirect("/admin/dashboard");
+    if (role === "user") return res.redirect("/dashboard");
 
     let resorts = [];
     try {
-      const resultPromise = pool.query("SELECT * FROM resorts ORDER BY id");
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("DB timeout")), 15000)
-      );
-      const result = await Promise.race([resultPromise, timeoutPromise]);
+      const result = await pool.query("SELECT * FROM resorts ORDER BY id");
       resorts = result.rows || [];
     } catch (dbErr) {
       console.error("Homepage DB query failed:", dbErr.message);
@@ -88,11 +86,7 @@ app.get("/bookings", async (req, res) => {
   try {
     let bookings = [];
     try {
-      const resultPromise = pool.query("SELECT * FROM bookings ORDER BY id DESC");
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("DB timeout")), 15000)
-      );
-      const result = await Promise.race([resultPromise, timeoutPromise]);
+      const result = await pool.query("SELECT * FROM bookings ORDER BY id DESC");
       bookings = result.rows || [];
     } catch (dbErr) {
       console.error("Bookings query failed:", dbErr.message);
