@@ -24,7 +24,7 @@ router.get("/dashboard", ensureUser, autoLogout, async (req, res) => {
       resortImages: images
     });
   } catch (err) {
-    console.error("Error loading dashboard:", err);
+    console.error("Error loading dashboard:", err.message);
     res.status(500).send("Dashboard error");
   }
 });
@@ -38,7 +38,7 @@ router.get("/user/resorts", ensureUser, autoLogout, async (req, res) => {
       username: req.session.username
     });
   } catch (err) {
-    console.error("Error loading resorts:", err);
+    console.error("Error loading resorts:", err.message);
     res.status(500).send("Resorts error");
   }
 });
@@ -66,16 +66,15 @@ router.get("/user/book/:resortName", ensureUser, autoLogout, async (req, res) =>
     req.flash("success_msg", "Booking successful! Check your bookings.");
     res.redirect("/user/bookings");
   } catch (err) {
-    console.error("Booking error:", err);
+    console.error("Booking error:", err.message);
     req.flash("error_msg", "Booking failed");
     res.redirect("/user/resorts");
   }
 });
 
 // ✅ New: Book a resort via POST (API-friendly for Postman/Thunder Client)
-router.post("/user/bookings", ensureUser, autoLogout, async (req, res) => {
-  const { resortName, bookingDate } = req.body;
-  const username = req.session.username;
+router.post("/user/bookings", autoLogout, async (req, res) => {
+  const { username, resortName, bookingDate } = req.body;
 
   try {
     const resort = await pool.query("SELECT * FROM resorts WHERE name = $1", [resortName]);
@@ -93,7 +92,7 @@ router.post("/user/bookings", ensureUser, autoLogout, async (req, res) => {
 
     res.json({ message: "Booking created successfully", resortName, price, status: "Pending" });
   } catch (err) {
-    console.error("Booking error:", err);
+    console.error("Booking error:", err.message);
     res.status(500).json({ error: "Booking failed" });
   }
 });
@@ -112,7 +111,7 @@ router.get("/user/bookings", ensureUser, autoLogout, async (req, res) => {
       username
     });
   } catch (err) {
-    console.error("Error loading bookings:", err);
+    console.error("Error loading bookings:", err.message);
     res.status(500).send("Bookings error");
   }
 });
