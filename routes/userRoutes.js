@@ -72,9 +72,10 @@ router.get("/user/book/:resortName", ensureUser, autoLogout, async (req, res) =>
   }
 });
 
-// ✅ New: Book a resort via POST (API-friendly for Postman/Thunder Client)
-router.post("/user/bookings", autoLogout, async (req, res) => {
-  const { username, resortName, bookingDate } = req.body;
+// Book a resort via POST (API-friendly for Postman/Thunder Client)
+router.post("/user/bookings", ensureUser, autoLogout, async (req, res) => {
+  const { resortName, bookingDate } = req.body;
+  const username = req.session.username;
 
   try {
     const resort = await pool.query("SELECT * FROM resorts WHERE name = $1", [resortName]);
