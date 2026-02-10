@@ -3,8 +3,19 @@ const router = express.Router();
 const pool = require("../config/db");
 const { ensureUser } = require("../middlewares/auth");
 
+// Middleware: auto logout if session missing or expired
+function autoLogout(req, res, next) {
+  if (!req.session || !req.session.username) {
+    req.session.destroy(() => {
+      res.redirect("/login");
+    });
+  } else {
+    next();
+  }
+}
+
 // Dashboard with dynamic resort images
-router.get("/dashboard", ensureUser, async (req, res) => {
+router.get("/dashboard", ensureUser, autoLogout, async (req, res) => {
   try {
     const result = await pool.query("SELECT image_url FROM resorts WHERE image_url IS NOT NULL");
     const images = result.rows.map(r => r.image_url);
@@ -19,7 +30,7 @@ router.get("/dashboard", ensureUser, async (req, res) => {
 });
 
 // View all resorts
-router.get("/user/resorts", ensureUser, async (req, res) => {
+router.get("/user/resorts", ensureUser, autoLogout, async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM resorts ORDER BY id");
     res.render("userResorts", {
@@ -33,7 +44,7 @@ router.get("/user/resorts", ensureUser, async (req, res) => {
 });
 
 // Book a resort (Browser flow via GET)
-router.get("/user/book/:resortName", ensureUser, async (req, res) => {
+router.get("/user/book/:resortName", ensureUser, autoLogout, async (req, res) => {
   const { resortName } = req.params;
   const username = req.session.username;
 
@@ -62,7 +73,7 @@ router.get("/user/book/:resortName", ensureUser, async (req, res) => {
 });
 
 // ✅ New: Book a resort via POST (API-friendly for Postman/Thunder Client)
-router.post("/user/bookings", ensureUser, async (req, res) => {
+router.post("/user/bookings", ensureUser, autoLogout, async (req, res) => {
   const { resortName, bookingDate } = req.body;
   const username = req.session.username;
 
@@ -88,7 +99,7 @@ router.post("/user/bookings", ensureUser, async (req, res) => {
 });
 
 // View user's bookings
-router.get("/user/bookings", ensureUser, async (req, res) => {
+router.get("/user/bookings", ensureUser, autoLogout, async (req, res) => {
   const username = req.session.username;
 
   try {
